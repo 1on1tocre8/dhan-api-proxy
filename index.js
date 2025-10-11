@@ -1,92 +1,64 @@
-const express = require('express');
-const axios = require('axios');
-const dotenv = require('dotenv');
-const cors = require('cors');
-
-dotenv.config();
+require("dotenv").config();
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 10000;
-
 app.use(cors());
 app.use(express.json());
 
-// LTP API
-app.post('/get-ltp', async (req, res) => {
+const API_KEY = process.env.API_KEY;
+const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
+const BASE_URL = "https://api.dhan.co";
+
+app.post("/get-ltp", async (req, res) => {
   try {
-    const response = await axios.post(
-      'https://api.dhan.co/marketfeed/ltp',
-      req.body,
-      {
-        headers: {
-          'access-token': process.env.ACCESS_TOKEN,
-          'client-id': process.env.API_KEY,
-        },
-      }
-    );
+    const payload = req.body; // Expect: { "NSE_EQ": [11536] }
+    console.log("Calling Dhan LTP with payload:", payload);
+
+    const response = await axios.post(`${BASE_URL}/marketfeed/ltp`, payload, {
+      headers: {
+        "access-token": ACCESS_TOKEN,
+        "client-id": API_KEY,
+      },
+    });
+
+    console.log("✅ LTP response:", response.data);
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: error?.response?.data || error.message });
+    console.error("❌ Error fetching LTP from Dhan");
+    console.error("Status:", error.response?.status);
+    console.error("Response data:", error.response?.data);
+    res
+      .status(error.response?.status || 500)
+      .json({ error: error.response?.data || "Unexpected error" });
   }
 });
 
-// OHLC API
-app.post('/get-ohlc', async (req, res) => {
+app.post("/get-ohlc", async (req, res) => {
   try {
-    const response = await axios.post(
-      'https://api.dhan.co/marketfeed/ohlc',
-      req.body,
-      {
-        headers: {
-          'access-token': process.env.ACCESS_TOKEN,
-          'client-id': process.env.API_KEY,
-        },
-      }
-    );
+    const payload = req.body; // Expect: { "NSE_EQ": [id] }
+    console.log("Calling Dhan OHLC with payload:", payload);
+
+    const response = await axios.post(`${BASE_URL}/marketfeed/ohlc`, payload, {
+      headers: {
+        "access-token": ACCESS_TOKEN,
+        "client-id": API_KEY,
+      },
+    });
+
+    console.log("✅ OHLC response:", response.data);
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: error?.response?.data || error.message });
+    console.error("❌ Error fetching OHLC from Dhan");
+    console.error("Status:", error.response?.status);
+    console.error("Response data:", error.response?.data);
+    res
+      .status(error.response?.status || 500)
+      .json({ error: error.response?.data || "Unexpected error" });
   }
 });
 
-// Intraday Chart
-app.post('/get-intraday', async (req, res) => {
-  try {
-    const response = await axios.post(
-      'https://api.dhan.co/charts/intraday',
-      req.body,
-      {
-        headers: {
-          'access-token': process.env.ACCESS_TOKEN,
-          'client-id': process.env.API_KEY,
-        },
-      }
-    );
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error?.response?.data || error.message });
-  }
-});
-
-// Option Chain
-app.post('/get-option-chain', async (req, res) => {
-  try {
-    const response = await axios.post(
-      'https://api.dhan.co/optionchain',
-      req.body,
-      {
-        headers: {
-          'access-token': process.env.ACCESS_TOKEN,
-          'client-id': process.env.API_KEY,
-        },
-      }
-    );
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error?.response?.data || error.message });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`✅ Proxy running on port ${PORT}`);
+app.listen(10000, () => {
+  console.log("✅ Proxy running on port 10000");
 });
