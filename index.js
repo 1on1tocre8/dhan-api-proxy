@@ -1,74 +1,93 @@
 const express = require("express");
 const axios = require("axios");
-const bodyParser = require("body-parser");
-
 const app = express();
-const port = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
+app.use(express.json());
 
-const API_KEY = "ee3ea5d3";
-const ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzYwMjYzMTUyLCJpYXQiOjE3NjAxNzY3NTIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA4NDgxOTUzIn0.Ib2ugYxTOE8OPovxHC8PzKzyT_BP4PAlMuqKuRFeSZm8fqqqdRgkw6qfAmDk6uimNV_R_sxGIcofH1JFwRyHVA";
+const PORT = process.env.PORT || 10000;
 
-const headers = {
+// Load your Dhan API credentials from environment or hardcode for testing
+const API_KEY = process.env.DHAN_API_KEY || "ee3ea5d3";
+const ACCESS_TOKEN = process.env.DHAN_ACCESS_TOKEN || "your_access_token_here";
+
+// Headers used in all Dhan API requests
+const getAuthHeaders = () => ({
   "access-token": ACCESS_TOKEN,
   "client-id": API_KEY,
-  "Content-Type": "application/json"
-};
+  "Content-Type": "application/json",
+});
 
-const base = "https://api.dhan.co";
+// Base URL
+const DHAN_API_BASE = "https://api.dhan.co";
 
+// === ROUTES ===
+
+// 📈 Get LTP (Last Traded Price)
 app.post("/get-ltp", async (req, res) => {
   try {
-    const response = await axios.post(`${base}/marketfeed/ltp`, req.body, { headers });
+    const response = await axios.post(
+      `${DHAN_API_BASE}/marketfeed/ltp`,
+      req.body,
+      { headers: getAuthHeaders() }
+    );
     res.json(response.data);
-  } catch (err) {
-    res.status(500).send(err.message);
+  } catch (error) {
+    console.error("LTP error:", error?.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch LTP", details: error?.response?.data });
   }
 });
 
+// 📊 Get OHLC
 app.post("/get-ohlc", async (req, res) => {
   try {
-    const response = await axios.post(`${base}/marketfeed/ohlc`, req.body, { headers });
+    const response = await axios.post(
+      `${DHAN_API_BASE}/marketfeed/ohlc`,
+      req.body,
+      { headers: getAuthHeaders() }
+    );
     res.json(response.data);
-  } catch (err) {
-    res.status(500).send(err.message);
+  } catch (error) {
+    console.error("OHLC error:", error?.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch OHLC", details: error?.response?.data });
   }
 });
 
-app.post("/get-optionchain", async (req, res) => {
-  try {
-    const response = await axios.post(`${base}/optionchain`, req.body, { headers });
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
-
+// 📉 Get Intraday Chart
 app.post("/get-intraday", async (req, res) => {
   try {
-    const response = await axios.post(`${base}/charts/intraday`, req.body, { headers });
+    const response = await axios.post(
+      `${DHAN_API_BASE}/charts/intraday`,
+      req.body,
+      { headers: getAuthHeaders() }
+    );
     res.json(response.data);
-  } catch (err) {
-    res.status(500).send(err.message);
+  } catch (error) {
+    console.error("Intraday error:", error?.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch Intraday chart", details: error?.response?.data });
   }
 });
 
-app.post("/get-id-by-symbol", async (req, res) => {
-  const { symbol, segment } = req.body;
+// 🧾 Get Option Chain
+app.post("/get-option-chain", async (req, res) => {
   try {
-    const response = await axios.get(`${base}/instrument/${segment}`, { headers });
-    const matches = response.data.filter(item => item.tradingSymbol === symbol);
-    if (matches.length > 0) {
-      res.json(matches[0]);
-    } else {
-      res.status(404).json({ error: "Symbol not found" });
-    }
-  } catch (err) {
-    res.status(500).send(err.message);
+    const response = await axios.post(
+      `${DHAN_API_BASE}/optionchain`,
+      req.body,
+      { headers: getAuthHeaders() }
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error("Option Chain error:", error?.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch Option Chain", details: error?.response?.data });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Proxy running on port ${port}`);
+// 🟢 Default route
+app.get("/", (req, res) => {
+  res.send("✅ Dhan Proxy is running.");
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`✅ Proxy running on port ${PORT}`);
 });
