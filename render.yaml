@@ -36,22 +36,22 @@ services:
       - key: DHAN_WS_URL
         value: wss://live.dhan.co/ws/marketfeed
       - key: UNIVERSE_FILE
-        # use absolute path that exists on Render
         value: /opt/render/project/src/universe/fno.csv
 
-  # Use Redis as the cache; it's widely available on Render
+  # Cache service
   - type: redis
     name: sf-cache
     plan: starter
     region: singapore
 
-cron:
+  # ✅ Put the cron job INSIDE services (not a top-level "cron:")
   - type: cron
     name: nightly-backfill
     runtime: python
+    plan: starter
     region: singapore
     rootDir: jobs
-    schedule: "0 1 * * MON-FRI"
+    schedule: "0 1 * * MON-FRI"   # 06:30 IST
     buildCommand: pip install -U pip && pip install -r requirements.txt
     startCommand: python backfill_minutes.py
 
