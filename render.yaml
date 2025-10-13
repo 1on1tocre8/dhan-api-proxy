@@ -2,7 +2,7 @@ services:
   - type: web
     name: stockfriend-api
     runtime: python
-    plan: standard
+    plan: free
     region: singapore
     rootDir: api
     buildCommand: pip install -U pip && pip install -r requirements.txt
@@ -11,22 +11,18 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase: { name: market-db, property: connectionString }
-      - key: KEYVALUE_URL
-        fromService: { type: redis, name: sf-cache, property: connectionString }
       - key: X_API_KEYS
         sync: false
 
   - type: worker
     name: stockfriend-worker
     runtime: python
-    plan: standard
+    plan: free
     region: singapore
     rootDir: worker
     buildCommand: pip install -U pip && pip install -r requirements.txt
     startCommand: python ingest_dhan.py
     envVars:
-      - key: KEYVALUE_URL
-        fromService: { type: redis, name: sf-cache, property: connectionString }
       - key: DATABASE_URL
         fromDatabase: { name: market-db, property: connectionString }
       - key: DHAN_CLIENT_ID
@@ -38,28 +34,19 @@ services:
       - key: UNIVERSE_FILE
         value: /opt/render/project/src/universe/fno.csv
 
-  # Cache service (Redis). Render requires an IP allow list.
-  - type: redis
-    name: sf-cache
-    plan: starter
-    region: singapore
-    ipAllowList:
-      - source: 0.0.0.0/0   # simplest: allow all (you can lock this down later)
-
-  # Cron job lives INSIDE services
   - type: cron
     name: nightly-backfill
     runtime: python
-    plan: starter
+    plan: free
     region: singapore
     rootDir: jobs
-    schedule: "0 1 * * MON-FRI"   # 06:30 IST
+    schedule: "0 1 * * MON-FRI"  # ~06:30 IST
     buildCommand: pip install -U pip && pip install -r requirements.txt
     startCommand: python backfill_minutes.py
 
 databases:
   - name: market-db
-    plan: standard
+    plan: free
     region: singapore
     postgresMajorVersion: "17"
-    diskSizeGB: 20
+    diskSizeGB: 1
