@@ -1,0 +1,16 @@
+name: nightly-backfill
+on:
+  schedule:
+    # 01:00 IST = 19:30 UTC (previous day). Run Mon–Fri at 19:30 UTC.
+    - cron: "30 19 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  call-backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backfill
+        run: |
+          curl -sS -X POST \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_KEY }}" \
+            "${{ secrets.BACKFILL_URL }}"
