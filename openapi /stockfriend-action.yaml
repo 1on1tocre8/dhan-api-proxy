@@ -1,0 +1,58 @@
+openapi: 3.1.0
+info:
+  title: Stockfriend Data API
+  version: 1.0.0
+servers:
+  - url: https://<your-render-web-url>   # replace after first deploy
+security:
+  - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+paths:
+  /health:
+    get:
+      security: [{ ApiKeyAuth: [] }]
+      responses: { '200': { description: OK } }
+  /universe:
+    get:
+      security: [{ ApiKeyAuth: [] }]
+      responses: { '200': { description: OK } }
+  /snapshot:
+    get:
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: query
+          name: symbols
+          required: true
+          schema: { type: string, example: RELIANCE,TCS }
+      responses: { '200': { description: OK } }
+  /bars:
+    get:
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: query
+          name: symbol
+          required: true
+          schema: { type: string }
+        - in: query
+          name: tf
+          required: true
+          schema: { type: string, enum: [1s,1m,5m,15m,1h,1d] }
+      responses: { '200': { description: OK } }
+  /signals:
+    get:
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: query
+          name: rule
+          required: true
+          schema: { type: string, enum: [breakdown,ma_flip_down,structure_break] }
+        - in: query
+          name: timeframe
+          required: true
+          schema: { type: string, enum: [1m,5m,15m] }
+      responses: { '200': { description: OK } }
