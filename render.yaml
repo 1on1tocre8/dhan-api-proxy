@@ -38,13 +38,15 @@ services:
       - key: UNIVERSE_FILE
         value: /opt/render/project/src/universe/fno.csv
 
-  # Cache service
+  # Cache service (Redis). Render requires an IP allow list.
   - type: redis
     name: sf-cache
     plan: starter
     region: singapore
+    ipAllowList:
+      - source: 0.0.0.0/0   # simplest: allow all (you can lock this down later)
 
-  # ✅ Put the cron job INSIDE services (not a top-level "cron:")
+  # Cron job lives INSIDE services
   - type: cron
     name: nightly-backfill
     runtime: python
