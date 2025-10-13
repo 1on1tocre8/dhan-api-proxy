@@ -34,16 +34,6 @@ services:
       - key: UNIVERSE_FILE
         value: /opt/render/project/src/universe/fno.csv
 
-  - type: cron
-    name: nightly-backfill
-    runtime: python
-    plan: free
-    region: singapore
-    rootDir: jobs
-    schedule: "0 1 * * MON-FRI"  # ~06:30 IST
-    buildCommand: pip install -U pip && pip install -r requirements.txt
-    startCommand: python backfill_minutes.py
-
 databases:
   - name: market-db
     plan: free
