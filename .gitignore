@@ -1,0 +1,6 @@
+__pycache__/
+.env
+*.sqlite
+*.log
+node_modules/
+.venv/

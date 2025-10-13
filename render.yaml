@@ -1,0 +1,71 @@
+services:
+  - type: web
+    name: stockfriend-api
+    runtime: python
+    plan: standard
+    region: singapore
+    rootDir: api
+    buildCommand: pip install -U pip && pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: market-db
+          property: connectionString
+      - key: KEYVALUE_URL
+        fromService:
+          type: keyvalue
+          name: sf-cache
+          property: connectionString
+      - key: X_API_KEYS
+        sync: false  # set in dashboard
+
+  - type: worker
+    name: stockfriend-worker
+    runtime: python
+    plan: standard
+    region: singapore
+    rootDir: worker
+    buildCommand: pip install -U pip && pip install -r requirements.txt
+    startCommand: python ingest_dhan.py
+    envVars:
+      - key: KEYVALUE_URL
+        fromService:
+          type: keyvalue
+          name: sf-cache
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: market-db
+          property: connectionString
+      - key: DHAN_CLIENT_ID
+        sync: false
+      - key: DHAN_ACCESS_TOKEN
+        sync: false
+      - key: DHAN_WS_URL
+        value: wss://live.dhan.co/ws/marketfeed
+      - key: UNIVERSE_FILE
+        value: /workspace/universe/fno.csv
+
+  - type: keyvalue
+    name: sf-cache
+    plan: starter
+    region: singapore
+
+cron:
+  - type: cron
+    name: nightly-backfill
+    runtime: python
+    region: singapore
+    rootDir: jobs
+    schedule: "0 1 * * MON-FRI"  # 06:30 IST
+    buildCommand: pip install -U pip && pip install -r requirements.txt
+    startCommand: python backfill_minutes.py
+
+databases:
+  - name: market-db
+    plan: standard
+    region: singapore
+    postgresMajorVersion: "17"
+    diskSizeGB: 20

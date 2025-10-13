@@ -1,65 +1,74 @@
-const express = require('express');
-const axios = require('axios');
-const bodyParser = require('body-parser');
-require('dotenv').config();
+const express = require("express");
+const axios = require("axios");
+const bodyParser = require("body-parser");
 
 const app = express();
+const port = process.env.PORT || 3000;
+
 app.use(bodyParser.json());
 
-const BASE_URL = 'https://api.dhan.co';
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
-const API_KEY = process.env.API_KEY;
+const API_KEY = "ee3ea5d3";
+const ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzYwMjYzMTUyLCJpYXQiOjE3NjAxNzY3NTIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA4NDgxOTUzIn0.Ib2ugYxTOE8OPovxHC8PzKzyT_BP4PAlMuqKuRFeSZm8fqqqdRgkw6qfAmDk6uimNV_R_sxGIcofH1JFwRyHVA";
 
-const HEADERS = {
-  'access-token': ACCESS_TOKEN,
-  'client-id': API_KEY,
+const headers = {
+  "access-token": ACCESS_TOKEN,
+  "client-id": API_KEY,
+  "Content-Type": "application/json"
 };
 
-app.get('/', (req, res) => {
-  res.send('✅ Dhan Proxy API is running');
-});
+const base = "https://api.dhan.co";
 
-// Get Last Traded Price
-app.post('/get-ltp', async (req, res) => {
+app.post("/get-ltp", async (req, res) => {
   try {
-    const response = await axios.post(`${BASE_URL}/marketfeed/ltp`, req.body, { headers: HEADERS });
+    const response = await axios.post(`${base}/marketfeed/ltp`, req.body, { headers });
     res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.toString() });
+  } catch (err) {
+    res.status(500).send(err.message);
   }
 });
 
-// Get OHLC
-app.post('/get-ohlc', async (req, res) => {
+app.post("/get-ohlc", async (req, res) => {
   try {
-    const response = await axios.post(`${BASE_URL}/marketfeed/ohlc`, req.body, { headers: HEADERS });
+    const response = await axios.post(`${base}/marketfeed/ohlc`, req.body, { headers });
     res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.toString() });
+  } catch (err) {
+    res.status(500).send(err.message);
   }
 });
 
-// Get Intraday
-app.post('/get-intraday', async (req, res) => {
+app.post("/get-optionchain", async (req, res) => {
   try {
-    const response = await axios.post(`${BASE_URL}/charts/intraday`, req.body, { headers: HEADERS });
+    const response = await axios.post(`${base}/optionchain`, req.body, { headers });
     res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.toString() });
+  } catch (err) {
+    res.status(500).send(err.message);
   }
 });
 
-// Get Option Chain
-app.post('/get-option-chain', async (req, res) => {
+app.post("/get-intraday", async (req, res) => {
   try {
-    const response = await axios.post(`${BASE_URL}/optionchain`, req.body, { headers: HEADERS });
+    const response = await axios.post(`${base}/charts/intraday`, req.body, { headers });
     res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.toString() });
+  } catch (err) {
+    res.status(500).send(err.message);
   }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`✅ Proxy running on port ${PORT}`);
+app.post("/get-id-by-symbol", async (req, res) => {
+  const { symbol, segment } = req.body;
+  try {
+    const response = await axios.get(`${base}/instrument/${segment}`, { headers });
+    const matches = response.data.filter(item => item.tradingSymbol === symbol);
+    if (matches.length > 0) {
+      res.json(matches[0]);
+    } else {
+      res.status(404).json({ error: "Symbol not found" });
+    }
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Proxy running on port ${port}`);
 });
