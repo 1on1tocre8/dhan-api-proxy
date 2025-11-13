@@ -6,7 +6,8 @@ import websockets
 
 DHAN_WS_URL  = os.getenv("DHAN_WS_URL")
 CLIENT_ID    = os.getenv("DHAN_CLIENT_ID")
-ACCESS_TOKEN = os.getenv("DHAN_ACCESS_TOKEN")
+ACCESS_TOKEN = os.getenv("DHAN_ACCESS_TOKEN")  # fallback
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 UNIVERSE_FILE = os.getenv("UNIVERSE_FILE") or str(
