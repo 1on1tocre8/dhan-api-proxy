@@ -34,9 +34,44 @@ services:
       - key: UNIVERSE_FILE
         value: /opt/render/project/src/universe/fno.csv
 
+- key: DHAN_CLIENT_ID
+  sync: false
+- key: DHAN_ACCESS_TOKEN
+  sync: false
+- key: ADMIN_KEY
+  sync: false
+- key: NEWSAPI_KEY
+  sync: false
+- key: SEBI_RSS
+  value: https://www.sebi.gov.in/sebirss.xml
+- key: NSE_RSS
+  value: https://www.nseindia.com/rss-feed
+- key: RBI_RSS
+  value: https://www.rbi.org.in/pressreleases_rss.xml
+
+
 databases:
   - name: market-db
     plan: free
     region: singapore
     postgresMajorVersion: "17"
     diskSizeGB: 1
+
+
+services:
+  - type: cron
+    name: stockfriend-dhan-rotate
+    runtime: python
+    schedule: "55 3 * * *"  # 03:55 IST
+    rootDir: jobs
+    buildCommand: pip install -U pip && pip install -r requirements.txt
+    startCommand: python rotate_token.py
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: market-db, property: connectionString }
+      - key: DHAN_CLIENT_ID
+        sync: false
+      - key: DHAN_ACCESS_TOKEN
+        sync: false
+      - key: TZ
+        value: Asia/Kolkata
