@@ -13,6 +13,20 @@ services:
         fromDatabase: { name: market-db, property: connectionString }
       - key: X_API_KEYS
         sync: false
+      - key: DHAN_CLIENT_ID
+        sync: false
+      - key: DHAN_ACCESS_TOKEN     # boot token; cron will rotate into DB
+        sync: false
+      - key: NEWSAPI_KEY
+        sync: false
+      - key: SEBI_RSS
+        value: https://www.sebi.gov.in/sebirss.xml
+      - key: NSE_RSS
+        value: https://www.nseindia.com/rss-feed
+      - key: RBI_RSS
+        value: https://www.rbi.org.in/pressreleases_rss.xml
+      - key: TZ
+        value: Asia/Kolkata
 
   - type: worker
     name: stockfriend-worker
@@ -21,7 +35,7 @@ services:
     region: singapore
     rootDir: worker
     buildCommand: pip install -U pip && pip install -r requirements.txt
-    startCommand: python ingest_dhan.py
+    startCommand: python Ingest_dhan.py
     envVars:
       - key: DATABASE_URL
         fromDatabase: { name: market-db, property: connectionString }
@@ -30,38 +44,17 @@ services:
       - key: DHAN_ACCESS_TOKEN
         sync: false
       - key: DHAN_WS_URL
-        value: wss://live.dhan.co/ws/marketfeed
+        value: wss://api-feed.dhan.co        # v2 feed endpoint
       - key: UNIVERSE_FILE
         value: /opt/render/project/src/universe/fno.csv
+      - key: TZ
+        value: Asia/Kolkata
 
-- key: DHAN_CLIENT_ID
-  sync: false
-- key: DHAN_ACCESS_TOKEN
-  sync: false
-- key: ADMIN_KEY
-  sync: false
-- key: NEWSAPI_KEY
-  sync: false
-- key: SEBI_RSS
-  value: https://www.sebi.gov.in/sebirss.xml
-- key: NSE_RSS
-  value: https://www.nseindia.com/rss-feed
-- key: RBI_RSS
-  value: https://www.rbi.org.in/pressreleases_rss.xml
-
-
-databases:
-  - name: market-db
-    plan: free
-    region: singapore
-    postgresMajorVersion: "17"
-    diskSizeGB: 1
-
-
-services:
   - type: cron
     name: stockfriend-dhan-rotate
     runtime: python
+    plan: free
+    region: singapore
     schedule: "55 3 * * *"  # 03:55 IST
     rootDir: jobs
     buildCommand: pip install -U pip && pip install -r requirements.txt
@@ -75,3 +68,10 @@ services:
         sync: false
       - key: TZ
         value: Asia/Kolkata
+
+databases:
+  - name: market-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "17"
+    diskSizeGB: 1
