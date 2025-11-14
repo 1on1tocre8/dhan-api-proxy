@@ -3,7 +3,7 @@ info:
   title: Stockfriend Data API
   version: 1.0.0
 servers:
-  - url: https:https://fictional-space-spoon-x556qx6qp4xp26pq7-10000.app.github.dev/
+  - url: https://fictional-space-spoon-x556qx6qp4xp26pq7-10000.app.github.dev/
 security:
   - ApiKeyAuth: []
 components:
