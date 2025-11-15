@@ -1,35 +1,46 @@
 openapi: 3.1.0
 info:
-  title: Stockfriend Orchestrator API
+  title: Stockfriend - Indian Stock Pro AI
+  description: |
+    Orchestrator for Indian stock market intelligence using Dhan, NewsAPI, and regulatory data.
+    Provides live quotes, OHLC data, trade execution, and financial news aggregation.
   version: 1.0.0
 
 servers:
-  - url: https://fictional-space-spoon-x556qx6qp4xp26pq7-10000.app.github.dev
-
-components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-
-security:
-  - ApiKeyAuth: []
+  - url: https://eminent-ardella-nonepigrammatically.ngrok-free.dev
+    description: Public API server via ngrok tunnel
 
 paths:
   /healthz:
     get:
-      summary: Health check
+      summary: Health check endpoint
+      operationId: getHealthz
       responses:
         "200":
-          description: OK
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  ts_ist:
+                    type: string
+                    description: Server timestamp in IST timezone
 
   /sf/run:
     post:
-      summary: Execute Stockfriend operation plan
+      summary: Run orchestrator plan
+      description: Execute one or more orchestrated operations such as getting quotes, renewing tokens, placing orders, fetching news, or reading regulatory feeds.
       operationId: runOrchestrator
-      security:
-        - ApiKeyAuth: []
+      parameters:
+        - name: x_api_key
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Optional API key for authentication
       requestBody:
         required: true
         content:
@@ -39,21 +50,60 @@ paths:
               properties:
                 plan:
                   type: array
-                  description: Ordered list of operations for the orchestrator.
+                  description: Ordered list of operations to execute
                   items:
                     type: object
                     properties:
                       op:
                         type: string
-                        description: Operation name (e.g. getRegulatory, ensureToken, getQuotes).
-                    required:
-                      - op
-              required:
-                - plan
+                        description: Operation name (e.g. ensureToken, getQuotes, getOHLC, placeOrder, getNews, getRegulatory)
+                      instrument:
+                        type: string
+                      instruments:
+                        type: array
+                        items:
+                          type: string
+                      interval:
+                        type: string
+                      from:
+                        type: string
+                      to:
+                        type: string
+                      q:
+                        type: string
+                      limit:
+                        type: integer
       responses:
         "200":
-          description: Successful execution
+          description: Successful orchestration
           content:
             application/json:
               schema:
                 type: object
+                properties:
+                  ts_ist:
+                    type: string
+                  ok:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                    properties:
+                      sources:
+                        type: array
+                        items:
+                          type: string
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x_api_key
+
+security:
+  - ApiKeyAuth: []
+
