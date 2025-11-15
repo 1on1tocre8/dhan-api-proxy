@@ -34,13 +34,8 @@ paths:
       summary: Run orchestrator plan
       description: Execute one or more orchestrated operations such as getting quotes, renewing tokens, placing orders, fetching news, or reading regulatory feeds.
       operationId: runOrchestrator
-      parameters:
-        - name: x_api_key
-          in: header
-          required: false
-          schema:
-            type: string
-          description: Optional API key for authentication
+      security:
+        - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -98,12 +93,12 @@ paths:
                           type: string
 
 components:
+  schemas: {}
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
       in: header
-      name: x_api_key
+      name: X-API-Key
 
 security:
   - ApiKeyAuth: []
-
