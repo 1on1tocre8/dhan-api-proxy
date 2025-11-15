@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Header, HTTPException, Query, Response
 from typing import Optional, List, Dict, Any
 import os, json, datetime as dt, requests, psycopg2
@@ -6,6 +5,7 @@ from dateutil import parser as dtp
 
 app = FastAPI(title="Stockfriend Orchestrator")
 
+# --- ENVIRONMENT VARIABLES ---
 DB = os.getenv("DATABASE_URL")
 DHAN_CLIENT_ID = os.getenv("DHAN_CLIENT_ID")
 BOOT_TOKEN = os.getenv("DHAN_ACCESS_TOKEN")
@@ -16,13 +16,14 @@ RBI_RSS  = os.getenv("RBI_RSS", "https://www.rbi.org.in/pressreleases_rss.xml")
 API_KEYS = set((os.getenv("X_API_KEYS") or "").split(","))
 ADMIN_KEY = os.getenv("ADMIN_KEY","")
 
+# --- UTILS ---
 def pg():
     con = psycopg2.connect(DB)
     con.autocommit = True
     return con
 
 def current_token() -> str:
-    # prefer DB token (rotated by cron), fallback to BOOT_TOKEN
+    """Prefer DB token, fallback to BOOT_TOKEN"""
     try:
         con = pg(); cur = con.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS tokens(name text primary key, token text, expiry timestamptz)")
@@ -31,14 +32,16 @@ def current_token() -> str:
         cur.close(); con.close()
         if row and row[0]:
             return row[0]
-    except Exception:
-        pass
+    except Exception as e:
+        print("Token fetch error:", e)
     return BOOT_TOKEN
 
 @app.get("/healthz")
 def healthz():
+    """Basic health check"""
     return {"ok": True, "ts_ist": dt.datetime.now(dt.timezone(dt.timedelta(hours=5,minutes=30))).isoformat()}
 
+# --- DHAN API WRAPPER ---
 def dhan(path:str, payload:Dict[str,Any]):
     url = "https://api.dhan.co" + path
     headers = {"access-token": current_token(), "Content-Type": "application/json"}
@@ -51,6 +54,7 @@ def dhan(path:str, payload:Dict[str,Any]):
         j = {"raw": r.text}
     return {"ok": True, "data": j}
 
+# --- NEWS + RSS ---
 def newsapi(query:str, limit:int=20):
     if not NEWSAPI_KEY:
         return []
@@ -74,24 +78,34 @@ def fetch_rss(url:str, tag:str):
         from xml.etree import ElementTree as ET
         root = ET.fromstring(r.content)
         items = []
-        # Basic RSS 2.0 parsing
         for item in root.findall(".//item"):
             title = (item.findtext("title") or "").strip()
             link  = (item.findtext("link") or "").strip()
             pub   = item.findtext("pubDate")
             ts = None
             if pub:
-                try: ts = dtp.parse(pub).astimezone(dt.timezone(dt.timedelta(hours=5,minutes=30))).isoformat()
-                except Exception: ts = None
+                try:
+                    ts = dtp.parse(pub).astimezone(dt.timezone(dt.timedelta(hours=5,minutes=30))).isoformat()
+                except Exception:
+                    ts = None
             items.append({"publishedAt_ist": ts, "headline": title, "source": tag, "url": link})
         return items
     except Exception as e:
+        print("RSS fetch error:", e)
         return []
 
+# --- MAIN ORCHESTRATOR ---
 @app.post("/sf/run")
 def sf_run(body: Dict[str, Any], x_api_key: Optional[str] = Header(None)):
-    # optional API key
+    """Main orchestrator for Stockfriend AI actions"""
+
+    # --- DEBUG LOGGING ---
+    print("DEBUG: Received X-API-Key =", x_api_key)
+    print("DEBUG: Allowed API_KEYS =", API_KEYS)
+
+    # --- SECURITY CHECK ---
     if API_KEYS and (x_api_key not in API_KEYS):
+        print("DEBUG: Unauthorized attempt detected.")
         raise HTTPException(401, "bad api key")
 
     plan = body.get("plan", [])
@@ -101,14 +115,16 @@ def sf_run(body: Dict[str, Any], x_api_key: Optional[str] = Header(None)):
         op = step.get("op")
         try:
             if op == "ensureToken":
-                # Touch RenewToken to guarantee a fresh 24h token
                 j = dhan("/v2/RenewToken", {})
                 ok = j.get("ok", False)
                 if ok and j["data"].get("accessToken"):
-                    # store into DB
                     con = pg(); cur = con.cursor()
-                    cur.execute("INSERT INTO tokens(name, token, expiry) VALUES('DHAN', %s, %s) ON CONFLICT (name) DO UPDATE SET token=EXCLUDED.token, expiry=EXCLUDED.expiry",
-                        (j["data"]["accessToken"], j["data"].get("expiryTime")))
+                    cur.execute("""
+                        INSERT INTO tokens(name, token, expiry)
+                        VALUES('DHAN', %s, %s)
+                        ON CONFLICT (name)
+                        DO UPDATE SET token=EXCLUDED.token, expiry=EXCLUDED.expiry
+                    """, (j["data"]["accessToken"], j["data"].get("expiryTime")))
                     cur.close(); con.close()
                 results.append({"op": op, **j})
             elif op == "getQuotes":
